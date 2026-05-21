@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -16,6 +15,7 @@ API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 SMALL_SUB_URL   = "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt"
 BIG_SUB_URL     = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
+LITE_SUB_URL    = "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/whitelist_keys.txt"
 KEYS_SOURCE_URL = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
 
 SUPPORT_URL = "https://pay.cloudtips.ru/p/2486fa1a"
@@ -45,7 +45,8 @@ def text_welcome(name):
 
 TEXT_SUB_MENU = (
     "🔶 <b>Выберите тип подписки</b>\n\n"
-    "❗️ Внимание: большая подписка может вызвать лаги на слабых устройствах."
+    "❗️ Внимание: большая подписка может вызвать лаги на слабых устройствах.\n\n"
+    "⚠️ <b>ВНИМАНИЕ:</b> Не используйте Lite-сервера на домашнем интернете!"
 )
 
 TEXT_KEYS_MENU = (
@@ -187,6 +188,7 @@ def kb_subscriptions():
         "inline_keyboard": [
             [{"text": "📦 Небольшая подписка (для слабых устройств)", "callback_data": "sub_small"}],
             [{"text": "🗂 Большая подписка (много ключей)",           "callback_data": "sub_big"}],
+            [{"text": "❗ НОВИНКА Lite-сервера",                      "callback_data": "sub_lite"}],
             [{"text": "◀️ Назад", "callback_data": "back_main"}],
         ]
     }
@@ -326,6 +328,17 @@ def handle_callback(cb):
             f"<code>{BIG_SUB_URL}</code>\n\n"
             "⚠️ Много серверов — возможны лаги на слабых устройствах.\n"
             "✅ Ссылка обновляется автоматически."
+        )
+        edit_message(chat_id, message_id, text, reply_markup=kb_back())
+
+    # ── Lite-сервера (НОВИНКА) ──
+    elif data == "sub_lite":
+        text = (
+            "🏳️ <b>Lite-сервера</b>\n\n"
+            "Скопируй ссылку ниже и импортируй в свой клиент "
+            "(Hiddify, V2rayTun, Nekobox и др.):\n\n"
+            f"<code>{LITE_SUB_URL}</code>\n\n"
+            "✅ Ссылка обновляется автоматически (каждые 2 часа) — добавь один раз и пользуйся."
         )
         edit_message(chat_id, message_id, text, reply_markup=kb_back())
 
