@@ -15,13 +15,17 @@ API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 SMALL_SUB_URL   = "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt"
 BIG_SUB_URL     = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
-LITE_SUB_URL    = "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/whitelist_keys.txt"
 KEYS_SOURCE_URL = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
+
+# Прокси для Telegram
+PROXY_RU_URL = "https://raw.githubusercontent.com/Ilyacom4ik/TGPROXY/refs/heads/main/proxy_ru.txt"
+PROXY_EU_URL = "https://raw.githubusercontent.com/Ilyacom4ik/TGPROXY/refs/heads/main/proxy_eu.txt"
+PROXY_ALL_URL = "https://raw.githubusercontent.com/Ilyacom4ik/TGPROXY/refs/heads/main/proxy_all.txt"
 
 SUPPORT_URL = "https://pay.cloudtips.ru/p/2486fa1a"
 CHANNEL_URL = "https://t.me/FreeCFGHub"
 
-LITE_KEYS_COUNT = 5
+LTE_KEYS_COUNT = 5
 FULL_KEYS_COUNT = 7
 
 # ═══════════════════════════════════════════════════════
@@ -45,15 +49,14 @@ def text_welcome(name):
 
 TEXT_SUB_MENU = (
     "🔶 <b>Выберите тип подписки</b>\n\n"
-    "❗️ Внимание: большая подписка может вызвать лаги на слабых устройствах.\n\n"
-    "⚠️ <b>ВНИМАНИЕ:</b> Не используйте Lite-сервера на домашнем интернете!"
+    "❗️ Внимание: большая подписка может вызвать лаги на слабых устройствах."
 )
 
 TEXT_KEYS_MENU = (
     "🔷 <b>Выберите тип ключа</b>\n\n"
-    "• <b>Lite 🏳️</b> — при белых списках\n"
+    "• <b>LTE 🏳️</b> — при белых списках\n"
     "• <b>Full 🏴</b> — при обычном использовании\n\n"
-    "❗️ Не используйте <b>Lite 🏳️</b> на Wi-Fi"
+    "❗️ Не используйте <b>LTE 🏳️</b> на Wi-Fi"
 )
 
 TEXT_HELP = (
@@ -164,6 +167,7 @@ def set_bot_commands():
         {"command": "sub",    "description": "📁 Получить подписку"},
         {"command": "keys",   "description": "🔑 Получить ключи"},
         {"command": "status", "description": "📡 Статус"},
+        {"command": "proxy",  "description": "🌍 Прокси для Telegram"},
         {"command": "help",   "description": "ℹ️ Справка"},
     ]
     requests.post(f"{API}/setMyCommands", json={"commands": commands}, timeout=10)
@@ -178,6 +182,7 @@ def kb_main():
         "inline_keyboard": [
             [{"text": "📁 Получить подписку", "callback_data": "menu_sub"}],
             [{"text": "🔑 Получить ключи",    "callback_data": "menu_keys"}],
+            [{"text": "🌍 Прокси для Telegram", "callback_data": "menu_proxy"}],
             [{"text": "💳 Поддержать канал",  "url": SUPPORT_URL}],
             [{"text": "ℹ️ Справка (ВАЖНО❗️)", "callback_data": "menu_help"}],
         ]
@@ -188,7 +193,6 @@ def kb_subscriptions():
         "inline_keyboard": [
             [{"text": "📦 Небольшая подписка (для слабых устройств)", "callback_data": "sub_small"}],
             [{"text": "🗂 Большая подписка (много ключей)",           "callback_data": "sub_big"}],
-            [{"text": "❗ НОВИНКА Lite-сервера",                      "callback_data": "sub_lite"}],
             [{"text": "◀️ Назад", "callback_data": "back_main"}],
         ]
     }
@@ -197,9 +201,19 @@ def kb_keys():
     return {
         "inline_keyboard": [
             [
-                {"text": "Lite 🏳️", "callback_data": "keys_lite"},
+                {"text": "LTE 🏳️", "callback_data": "keys_lte"},
                 {"text": "Full 🏴",  "callback_data": "keys_full"},
             ],
+            [{"text": "◀️ Назад", "callback_data": "back_main"}],
+        ]
+    }
+
+def kb_proxy_countries():
+    return {
+        "inline_keyboard": [
+            [{"text": "🇷🇺 Россия", "callback_data": "proxy_ru"}],
+            [{"text": "🇪🇺 Европа", "callback_data": "proxy_eu"}],
+            [{"text": "🌍 Все (RU+EU)", "callback_data": "proxy_all"}],
             [{"text": "◀️ Назад", "callback_data": "back_main"}],
         ]
     }
@@ -215,13 +229,29 @@ def kb_back():
 #               ЗАГРУЗКА И ПАРСИНГ КЛЮЧЕЙ
 # ═══════════════════════════════════════════════════════
 
+def fetch_proxies_from_url(url):
+    """Загружает прокси из URL и возвращает список ссылок"""
+    try:
+        r = requests.get(url, timeout=15)
+        if r.status_code == 200:
+            proxies = []
+            for line in r.text.splitlines():
+                line = line.strip()
+                if line.startswith("tg://proxy?"):
+                    proxies.append(line)
+            return proxies
+        return []
+    except Exception as e:
+        print(f"Ошибка загрузки прокси: {e}", flush=True)
+        return []
+
 def fetch_and_parse_keys():
     try:
         r = requests.get(KEYS_SOURCE_URL, timeout=15)
         if r.status_code != 200:
             return None, f"Ошибка загрузки: {r.status_code}"
 
-        lite_keys = []
+        lte_keys = []
         full_keys = []
 
         for line in r.text.splitlines():
@@ -230,15 +260,15 @@ def fetch_and_parse_keys():
                 continue
             if not re.match(r'^(vless|vmess|trojan|ss|tuic|hysteria2)://', line):
                 continue
-            if re.search(r'\bLite\b', line, re.IGNORECASE):
-                lite_keys.append(line)
+            if re.search(r'\bLTE\b', line, re.IGNORECASE):
+                lte_keys.append(line)
             elif re.search(r'\bFull\b', line, re.IGNORECASE):
                 full_keys.append(line)
             else:
                 full_keys.append(line)
 
-        print(f"DEBUG: Lite={len(lite_keys)}, Full={len(full_keys)}", flush=True)
-        return {"lite": lite_keys, "full": full_keys}, None
+        print(f"DEBUG: LTE={len(lte_keys)}, Full={len(full_keys)}", flush=True)
+        return {"lte": lte_keys, "full": full_keys}, None
 
     except Exception as e:
         return None, str(e)
@@ -254,7 +284,7 @@ def get_status_text():
         return f"❌ Ошибка: {error}"
     return (
         f"📊 <b>Статус подписки</b>\n\n"
-        f"🏳️ Lite ключей: {len(keys_data.get('lite', []))}\n"
+        f"🏳️ LTE ключей: {len(keys_data.get('lte', []))}\n"
         f"🏴 Full ключей: {len(keys_data.get('full', []))}\n\n"
         f"🔄 Обновляется автоматически\n\n"
         f"📢 {CHANNEL_URL}"
@@ -284,6 +314,9 @@ def handle_message(msg):
     elif text == "/status":
         send_message(chat_id, TEXT_STATUS_LOADING)
         send_message(chat_id, get_status_text())
+
+    elif text == "/proxy":
+        send_message(chat_id, "🌍 Выберите страну прокси:", reply_markup=kb_proxy_countries())
 
     elif text in ("/help", "/info"):
         send_message(chat_id, TEXT_HELP, reply_markup=kb_back())
@@ -331,27 +364,16 @@ def handle_callback(cb):
         )
         edit_message(chat_id, message_id, text, reply_markup=kb_back())
 
-    # ── Lite-сервера (НОВИНКА) ──
-    elif data == "sub_lite":
-        text = (
-            "🏳️ <b>Lite-сервера</b>\n\n"
-            "Скопируй ссылку ниже и импортируй в свой клиент "
-            "(Hiddify, V2rayTun, Nekobox и др.):\n\n"
-            f"<code>{LITE_SUB_URL}</code>\n\n"
-            "✅ Ссылка обновляется автоматически (каждые 2 часа) — добавь один раз и пользуйся."
-        )
-        edit_message(chat_id, message_id, text, reply_markup=kb_back())
-
     # ── Меню ключей ──
     elif data == "menu_keys":
         edit_message(chat_id, message_id, TEXT_KEYS_MENU, reply_markup=kb_keys())
 
-    # ── Lite / Full ключи ──
-    elif data in ("keys_lite", "keys_full"):
-        key_type = "lite" if data == "keys_lite" else "full"
-        count    = LITE_KEYS_COUNT if key_type == "lite" else FULL_KEYS_COUNT
-        label    = "Lite 🏳️" if key_type == "lite" else "Full 🏴"
-        warn     = "\n❗️ Не используй на Wi-Fi!" if key_type == "lite" else ""
+    # ── LTE / Full ключи ──
+    elif data in ("keys_lte", "keys_full"):
+        key_type = "lte" if data == "keys_lte" else "full"
+        count    = LTE_KEYS_COUNT if key_type == "lte" else FULL_KEYS_COUNT
+        label    = "LTE 🏳️" if key_type == "lte" else "Full 🏴"
+        warn     = "\n❗️ Не используй на Wi-Fi!" if key_type == "lte" else ""
 
         edit_message(chat_id, message_id, f"⏳ Загружаю {label} ключи...")
 
@@ -378,6 +400,52 @@ def handle_callback(cb):
             f"📢 {CHANNEL_URL}",
             reply_markup=kb_back()
         )
+
+    # ── Прокси для Telegram ──
+    elif data.startswith("proxy_"):
+        country = data.split("_")[1]
+        
+        if country == "ru":
+            url = PROXY_RU_URL
+            label = "🇷🇺 Россия"
+        elif country == "eu":
+            url = PROXY_EU_URL
+            label = "🇪🇺 Европа"
+        else:
+            url = PROXY_ALL_URL
+            label = "🌍 Все страны"
+        
+        edit_message(chat_id, message_id, f"⏳ Загружаю прокси ({label})...")
+        
+        proxies = fetch_proxies_from_url(url)
+        
+        if not proxies:
+            edit_message(chat_id, message_id, 
+                         f"❌ Прокси для {label} временно недоступны\n\nПопробуй позже или выбери другую страну.",
+                         reply_markup=kb_proxy_countries())
+            return
+        
+        # Берём первые 5 прокси
+        proxies = proxies[:5]
+        
+        # Формируем клавиатуру с кнопками
+        keyboard = []
+        for i, proxy in enumerate(proxies, 1):
+            keyboard.append([{"text": f"🔵 Подключиться #{i}", "url": proxy}])
+        keyboard.append([{"text": "◀️ Назад", "callback_data": "menu_proxy"}])
+        
+        edit_message(
+            chat_id, message_id,
+            f"🌍 <b>MTProto прокси для Telegram</b>\n\n"
+            f"📍 <b>Регион:</b> {label}\n"
+            f"📦 <b>Доступно прокси:</b> {len(proxies)}\n\n"
+            f"📌 Нажми на кнопку, чтобы подключиться\n\n"
+            f"📢 {CHANNEL_URL}",
+            reply_markup={"inline_keyboard": keyboard}
+        )
+    
+    elif data == "menu_proxy":
+        edit_message(chat_id, message_id, "🌍 Выберите страну прокси:", reply_markup=kb_proxy_countries())
 
     # ── Справка / Соглашение ──
     elif data == "menu_help":
