@@ -518,7 +518,7 @@ def handle_callback(cb):
 def main():
     print("🤖 Бот FreeCFGHub запущен", flush=True)
     print("=" * 60, flush=True)
-    print("⚠️ Логи пишутся ТОЛЬКО в консоль! flush=True)
+    print("⚠️ Логи пишутся ТОЛЬКО в консоль!", flush=True)
     print("=" * 60, flush=True)
     set_bot_commands()
 
