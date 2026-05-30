@@ -5,6 +5,7 @@ import os
 import re
 import random
 import requests
+from datetime import datetime
 
 BOT_TOKEN = os.environ['TG_BOT_TOKEN']
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
@@ -27,6 +28,39 @@ CHANNEL_URL = "https://t.me/FreeCFGHub"
 
 LTE_KEYS_COUNT = 5
 FULL_KEYS_COUNT = 7
+
+# ═══════════════════════════════════════════════════════
+#                     ЛОГГЕР (только в консоль)
+# ═══════════════════════════════════════════════════════
+
+def get_user_info(user):
+    """Форматирует информацию о пользователе для лога"""
+    user_id = user.get('id', '?')
+    first_name = user.get('first_name', '')
+    last_name = user.get('last_name', '')
+    username = user.get('username', '')
+    name = f"{first_name} {last_name}".strip()
+    if name and username:
+        full_info = f"{name} (@{username})"
+    elif name:
+        full_info = name
+    elif username:
+        full_info = f"@{username}"
+    else:
+        full_info = f"user_{user_id}"
+    return f"{full_info} [{user_id}]"
+
+def log_action(user, action, details=""):
+    """Записывает действие пользователя только в КОНСОЛЬ (не в файл!)"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    user_info = get_user_info(user)
+    
+    log_entry = f"[{timestamp}] 👤 {user_info} ➜ {action}"
+    if details:
+        log_entry += f" | {details}"
+    
+    # Только в консоль, НЕ в файл!
+    print(log_entry, flush=True)
 
 # ═══════════════════════════════════════════════════════
 #                     ТЕКСТЫ
@@ -297,28 +331,35 @@ def get_status_text():
 def handle_message(msg):
     chat_id = msg.get("chat", {}).get("id")
     text = msg.get("text", "")
+    user = msg.get("from", {})
     if not chat_id:
         return
 
-    name = msg.get("from", {}).get("first_name") or "друг"
+    name = user.get("first_name") or "друг"
 
     if text == "/start":
+        log_action(user, "🚀 ЗАПУСТИЛ БОТА", "Команда /start")
         send_message(chat_id, text_welcome(name), reply_markup=kb_main())
 
     elif text in ("/sub",):
+        log_action(user, "📁 ОТКРЫЛ МЕНЮ ПОДПИСОК", "Команда /sub")
         send_message(chat_id, TEXT_SUB_MENU, reply_markup=kb_subscriptions())
 
     elif text == "/keys":
+        log_action(user, "🔑 ОТКРЫЛ МЕНЮ КЛЮЧЕЙ", "Команда /keys")
         send_message(chat_id, TEXT_KEYS_MENU, reply_markup=kb_keys())
 
     elif text == "/status":
+        log_action(user, "📡 ЗАПРОСИЛ СТАТУС", "Команда /status")
         send_message(chat_id, TEXT_STATUS_LOADING)
         send_message(chat_id, get_status_text())
 
     elif text == "/proxy":
+        log_action(user, "🌍 ОТКРЫЛ МЕНЮ ПРОКСИ", "Команда /proxy")
         send_message(chat_id, "🌍 Выберите страну прокси:", reply_markup=kb_proxy_countries())
 
     elif text in ("/help", "/info"):
+        log_action(user, "ℹ️ ОТКРЫЛ СПРАВКУ", "Команда /help")
         send_message(chat_id, TEXT_HELP, reply_markup=kb_back())
 
 # ═══════════════════════════════════════════════════════
@@ -331,19 +372,23 @@ def handle_callback(cb):
     data       = cb.get("data", "")
     from_user  = cb.get("from", {})
     name       = from_user.get("first_name") or "друг"
+    user       = from_user
 
     answer_callback(cb["id"])
 
     # ── Главное меню ──
     if data == "back_main":
+        log_action(user, "🏠 ВЕРНУЛСЯ В ГЛАВНОЕ МЕНЮ", "Нажата кнопка 'Назад'")
         edit_message(chat_id, message_id, text_welcome(name), reply_markup=kb_main())
 
     # ── Меню подписок ──
     elif data == "menu_sub":
+        log_action(user, "📁 ОТКРЫЛ МЕНЮ ПОДПИСОК", "Из главного меню")
         edit_message(chat_id, message_id, TEXT_SUB_MENU, reply_markup=kb_subscriptions())
 
     # ── Небольшая подписка ──
     elif data == "sub_small":
+        log_action(user, "📦 ВЫБРАЛ НЕБОЛЬШУЮ ПОДПИСКУ", f"URL: {SMALL_SUB_URL}")
         text = (
             "📦 <b>Небольшая подписка</b>\n\n"
             "Скопируй ссылку ниже и вставь в поле <b>«Подписка»</b> в своём клиенте "
@@ -355,6 +400,7 @@ def handle_callback(cb):
 
     # ── Большая подписка ──
     elif data == "sub_big":
+        log_action(user, "🗂 ВЫБРАЛ БОЛЬШУЮ ПОДПИСКУ", f"URL: {BIG_SUB_URL}")
         text = (
             "🗂 <b>Большая подписка</b>\n\n"
             "Скопируй ссылку ниже и вставь в поле <b>«Подписка»</b> в своём клиенте:\n\n"
@@ -366,6 +412,7 @@ def handle_callback(cb):
 
     # ── Меню ключей ──
     elif data == "menu_keys":
+        log_action(user, "🔑 ОТКРЫЛ МЕНЮ КЛЮЧЕЙ", "Из главного меню")
         edit_message(chat_id, message_id, TEXT_KEYS_MENU, reply_markup=kb_keys())
 
     # ── LTE / Full ключи ──
@@ -375,22 +422,28 @@ def handle_callback(cb):
         label    = "LTE 🏳️" if key_type == "lte" else "Full 🏴"
         warn     = "\n❗️ Не используй на Wi-Fi!" if key_type == "lte" else ""
 
+        log_action(user, f"🔑 ЗАПРОСИЛ КЛЮЧИ {label}", f"Количество: {count} шт.")
+
         edit_message(chat_id, message_id, f"⏳ Загружаю {label} ключи...")
 
         keys_data, error = fetch_and_parse_keys()
         if error:
+            log_action(user, f"❌ ОШИБКА загрузки ключей {label}", error)
             edit_message(chat_id, message_id,
                          f"❌ Не удалось загрузить ключи: {error}", reply_markup=kb_back())
             return
 
         keys_list = keys_data.get(key_type, [])
         if not keys_list:
+            log_action(user, f"😔 КЛЮЧИ {label} НЕДОСТУПНЫ", "Пустой список")
             edit_message(chat_id, message_id,
                          "😔 Ключи временно недоступны. Загляни позже!", reply_markup=kb_back())
             return
 
         selected   = get_random_keys(keys_list, count)
         keys_block = "\n\n".join(f"<code>{k}</code>" for k in selected)
+
+        log_action(user, f"✅ ВЫДАЛ КЛЮЧИ {label}", f"{len(selected)} шт. из {len(keys_list)} доступных")
 
         edit_message(
             chat_id, message_id,
@@ -415,11 +468,14 @@ def handle_callback(cb):
             url = PROXY_ALL_URL
             label = "🌍 Все страны"
         
+        log_action(user, f"🌍 ЗАПРОСИЛ ПРОКСИ {label}", f"URL: {url}")
+        
         edit_message(chat_id, message_id, f"⏳ Загружаю прокси ({label})...")
         
         proxies = fetch_proxies_from_url(url)
         
         if not proxies:
+            log_action(user, f"❌ ПРОКСИ {label} НЕДОСТУПНЫ", "Пустой список")
             edit_message(chat_id, message_id, 
                          f"❌ Прокси для {label} временно недоступны\n\nПопробуй позже или выбери другую страну.",
                          reply_markup=kb_proxy_countries())
@@ -427,6 +483,8 @@ def handle_callback(cb):
         
         # Берём первые 5 прокси
         proxies = proxies[:5]
+        
+        log_action(user, f"✅ ВЫДАЛ ПРОКСИ {label}", f"{len(proxies)} шт.")
         
         # Формируем клавиатуру с кнопками
         keyboard = []
@@ -445,10 +503,12 @@ def handle_callback(cb):
         )
     
     elif data == "menu_proxy":
+        log_action(user, "🌍 ОТКРЫЛ МЕНЮ ПРОКСИ", "Из главного меню")
         edit_message(chat_id, message_id, "🌍 Выберите страну прокси:", reply_markup=kb_proxy_countries())
 
     # ── Справка / Соглашение ──
     elif data == "menu_help":
+        log_action(user, "ℹ️ ОТКРЫЛ СПРАВКУ/СОГЛАШЕНИЕ", "Из главного меню")
         edit_message(chat_id, message_id, TEXT_HELP, reply_markup=kb_back())
 
 # ═══════════════════════════════════════════════════════
@@ -457,6 +517,9 @@ def handle_callback(cb):
 
 def main():
     print("🤖 Бот FreeCFGHub запущен", flush=True)
+    print("=" * 60, flush=True)
+    print("⚠️ Логи пишутся ТОЛЬКО в консоль! flush=True)
+    print("=" * 60, flush=True)
     set_bot_commands()
 
     offset = None
