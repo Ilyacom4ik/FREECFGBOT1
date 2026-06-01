@@ -8,7 +8,10 @@ import random
 import requests
 from datetime import datetime
 
+# Подтягиваем скрытые переменные с хостинга bothost
 BOT_TOKEN = os.environ['TG_BOT_TOKEN']
+SECRET_KEY = os.environ.get('API_AUTH_TOKEN')
+
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 SMALL_SUB_URL   = "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt"
@@ -28,7 +31,7 @@ FULL_KEYS_COUNT = 7
 STATS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stats.json')
 
 # ═══════════════════════════════════════════════════════
-#                     СТАТИСТИКА
+#                      СТАТИСТИКА
 # ═══════════════════════════════════════════════════════
 
 def load_stats():
@@ -74,7 +77,7 @@ def get_stats_text():
     )
 
 # ═══════════════════════════════════════════════════════
-#                     ЛОГГЕР
+#                      ЛОГГЕР
 # ═══════════════════════════════════════════════════════
 
 def get_user_info(user):
@@ -102,7 +105,7 @@ def log_action(user, action, details=""):
     print(log_entry, flush=True)
 
 # ═══════════════════════════════════════════════════════
-#                     ТЕКСТЫ
+#                      ТЕКСТЫ
 # ═══════════════════════════════════════════════════════
 
 def text_welcome(name):
@@ -166,8 +169,8 @@ TEXT_HELP = (
     "• Организации DDoS-атак\n"
     "• Любой иной деятельности, запрещённой законодательством РФ\n\n"
     "<b>8. ИЗМЕНЕНИЕ УСЛОВИЙ</b>\n"
-    "8.1. Администрация вправе изменять условия Соглашения без уведомления.\n\n"
-    "<b>9. ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ</b>\n"
+    "8.1. Администрация вправе изменять условия Соглашения без уведомления.\n"
+    "9. ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ\n"
     "9.1. Использование материалов означает полное согласие с настоящим Соглашением.\n"
     f"📢 Канал: {CHANNEL_URL}"
 )
@@ -175,7 +178,7 @@ TEXT_HELP = (
 TEXT_STATUS_LOADING = "⏳ Проверяю..."
 
 # ═══════════════════════════════════════════════════════
-#                  TELEGRAM API HELPERS
+#                   TELEGRAM API HELPERS
 # ═══════════════════════════════════════════════════════
 
 def get_updates(offset=None):
@@ -235,7 +238,7 @@ def set_bot_commands():
     print("✅ Команды меню установлены", flush=True)
 
 # ═══════════════════════════════════════════════════════
-#                  КЛАВИАТУРЫ
+#                        КЛАВИАТУРЫ
 # ═══════════════════════════════════════════════════════
 
 def kb_main():
@@ -520,7 +523,7 @@ def handle_callback(cb):
         edit_message(chat_id, message_id, TEXT_HELP, reply_markup=kb_back())
 
 # ═══════════════════════════════════════════════════════
-#                       MAIN LOOP
+#                        MAIN LOOP
 # ═══════════════════════════════════════════════════════
 
 def main():
@@ -542,4 +545,4 @@ def main():
                 print(f"Ошибка обработки update: {e}", flush=True)
 
 if __name__ == "__main__":
-    main()  
+    main()
