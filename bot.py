@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+    #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -371,7 +371,7 @@ def handle_message(msg):
         log_action(user, "ℹ️ ЗАПРОСИЛ ИНФОРМАЦИЮ")
         send_message(chat_id, INFO_TEXT, disable_web_page_preview=True)
 
-    elif text in ("/help", "/info"):
+    elif text in ("/help",):
         log_action(user, "ℹ️ ОТКРЫЛ СПРАВКУ")
         send_message(chat_id, TEXT_HELP, reply_markup=kb_back())
 
