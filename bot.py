@@ -1,4 +1,4 @@
-    #!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -170,6 +170,7 @@ TEXT_HELP = (
 )
 
 TEXT_STATUS_LOADING = "⏳ Проверяю..."
+
 INFO_TEXT = (
     "ℹ️ <b>Информация о проекте FreeCFGHub</b>\n\n"
     "📜 <b>Документы:</b>\n"
@@ -256,7 +257,7 @@ def kb_main():
             [{"text": "📁 Получить подписку",     "callback_data": "menu_sub"}],
             [{"text": "🔑 Получить конфигурации", "callback_data": "menu_keys"}],
             [{"text": "💳 Поддержать канал",      "url": SUPPORT_URL}],
-            [{"text": "ℹ️ Информация",            "callback_data": "menu_info"}],
+            [{"text": "ℹ️ Информация",            "callback_data": "info"}],
             [{"text": "📜 Справка",               "callback_data": "menu_help"}],
         ]
     }
@@ -325,8 +326,8 @@ def get_status_text():
         return f"❌ Ошибка: {error}"
     return (
         f"📊 <b>Статус подписки</b>\n\n"
-        f"🏳️ Lite ключей: {len(keys_data.get('lite', []))}\n"
-        f"🏴 Full ключей: {len(keys_data.get('full', []))}\n\n"
+        f"🏳️ Lite 키: {len(keys_data.get('lite', []))}\n"
+        f"🏴 Full 키: {len(keys_data.get('full', []))}\n\n"
         f"🔄 Обновляется автоматически\n\n"
         f"📢 {CHANNEL_URL}"
     )
@@ -369,7 +370,7 @@ def handle_message(msg):
 
     elif text == "/info":
         log_action(user, "ℹ️ ЗАПРОСИЛ ИНФОРМАЦИЮ")
-        send_message(chat_id, INFO_TEXT, disable_web_page_preview=True)
+        send_message(chat_id, INFO_TEXT)
 
     elif text in ("/help",):
         log_action(user, "ℹ️ ОТКРЫЛ СПРАВКУ")
@@ -460,9 +461,9 @@ def handle_callback(cb):
             reply_markup=kb_back()
         )
 
-    elif data == "menu_info":
-        log_action(user, "ℹ️ ОТКРЫЛ ИНФОРМАЦИЮ")
-        edit_message(chat_id, message_id, INFO_TEXT, disable_web_page_preview=True, reply_markup=kb_back())
+    elif data == "info":
+        log_action(user, "ℹ️ ЗАПРОСИЛ ИНФОРМАЦИЮ")
+        send_message(chat_id, INFO_TEXT)
 
     elif data == "menu_help":
         log_action(user, "ℹ️ ОТКРЫЛ СПРАВКУ")
