@@ -663,16 +663,17 @@ def handle_callback(callback_query: dict):
             reply_markup=keyboard_back_to_main()
         )
 
-
 # ═══════════════════════════════════════════════════════
-#         FLASK — WEBHOOK PLATEGA + ПРОКСИ ПОДПИСКИ
+#          FLASK — WEBHOOK PLATEGA + ПРОКСИ
 # ═══════════════════════════════════════════════════════
-# Flask запускается в отдельном потоке и слушает порт 8080.
-# Он обрабатывает два типа запросов:
-#   1. POST /payment/callback — от Platega после оплаты
-#   2. GET  /sub/<token>      — от VPN-клиентов за подпиской
 
+# 1. Создаем объект ИМЕННО как flask_app
 flask_app = Flask(__name__)
+
+# 2. Главная страница теперь тоже использует flask_app
+@flask_app.route("/", methods=["GET"])
+def index():
+    return "active", 200
 
 # Подстроки в User-Agent, по которым определяем VPN-клиент
 KNOWN_VPN_CLIENT_AGENTS = [
@@ -689,16 +690,6 @@ def is_request_from_vpn_client(user_agent: str) -> bool:
 
 @flask_app.route("/sub/<subscription_token>", methods=["GET"])
 def proxy_premium_subscription(subscription_token: str):
-    """
-    Прокси-эндпоинт для премиум подписки.
-
-    Защита двухуровневая:
-    1. Проверяем User-Agent — если браузер, отдаём 403 (скрываем URL)
-    2. Проверяем токен в словаре active_premium_tokens — если нет, 404
-
-    Если всё ок — скачиваем реальную подписку и проксируем содержимое.
-    Это позволяет в любой момент сменить реальный URL без уведомления пользователей.
-    """
     user_agent = request.headers.get("User-Agent", "")
 
     if not is_request_from_vpn_client(user_agent):
@@ -724,20 +715,9 @@ def proxy_premium_subscription(subscription_token: str):
 
 @flask_app.route("/payment/callback", methods=["POST"])
 def handle_payment_webhook():
-    """
-    Webhook от Platega — вызывается при смене статуса платежа.
-
-    Проверяем подлинность запроса по заголовкам X-MerchantId и X-Secret.
-    Если статус CONFIRMED — выдаём пользователю его персональный токен подписки.
-
-    Поиск пользователя по приоритету:
-    1. Из словаря pending_payment_user_ids по transaction_id
-    2. Из поля payload в теле запроса (Platega возвращает то, что мы передали при создании)
-    """
     incoming_merchant_id = request.headers.get("X-MerchantId", "")
     incoming_secret      = request.headers.get("X-Secret", "")
 
-    # Проверяем что запрос реально от Platega
     if incoming_merchant_id != PLATEGA_MERCHANT_ID or incoming_secret != PLATEGA_WEBHOOK_SECRET:
         print("⚠️ Callback: неверная авторизация", flush=True)
         abort(403)
@@ -749,10 +729,8 @@ def handle_payment_webhook():
     print(f"📩 Platega callback: tx={transaction_id} status={payment_status}", flush=True)
 
     if payment_status == "CONFIRMED" and transaction_id:
-        # Пробуем найти пользователя по transaction_id (наш словарь)
         paying_user_id = pending_payment_user_ids.pop(transaction_id, None)
 
-        # Если не нашли — берём из payload (Platega возвращает его обратно)
         if not paying_user_id:
             try:
                 paying_user_id = int(webhook_data.get("payload", "0"))
