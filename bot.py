@@ -7,6 +7,7 @@ import uuid
 import random
 import threading
 import requests
+from datetime import datetime, timedelta
 from flask import Flask, request, Response, abort
 
 
@@ -18,7 +19,7 @@ TELEGRAM_BOT_TOKEN      = os.environ['TG_BOT_TOKEN']
 PLATEGA_MERCHANT_ID     = os.environ['PLATEGA_MERCHANT_ID']
 PLATEGA_WEBHOOK_SECRET  = os.environ['PLATEGA_SECRET']
 PUBLIC_SERVER_URL       = os.environ['SERVER_URL']
-PREMIUM_PRICE_RUB       = 150  # цена подписки 150₽
+PREMIUM_PRICE_RUB       = 150  # цена подписки 150₽ за месяц
 
 TELEGRAM_API_BASE       = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 PLATEGA_API_BASE        = "https://app.platega.io"
@@ -34,7 +35,8 @@ USERS_DATABASE_FILE     = "database.txt"
 LITE_KEYS_COUNT         = 5
 FULL_KEYS_COUNT         = 7
 
-active_premium_tokens: dict[str, int] = {}
+# Хранилище премиум-токенов: { token: {"user_id": int, "expires_at": timestamp} }
+active_premium_tokens: dict[str, dict] = {}
 pending_payment_user_ids: dict[str, int] = {}
 
 
@@ -91,9 +93,10 @@ TEXT_PREMIUM_INFO = (
     "💎 <b>Премиум подписка</b>\n\n"
     f"Стоимость: <b>{PREMIUM_PRICE_RUB} ₽</b>\n\n"
     "Что входит:\n"
-    "• Стабильная подписка с большим пулом серверов\n"
+    "• Подписка на 1 месяц\n"
+    "• Стабильные конфигурации с большим пулом серверов\n"
     "• Персональная ссылка — вставляешь один раз в клиент\n"
-    "• Ссылка работает только в VPN-клиенте (Hiddify, V2rayTun и др.)\n\n"
+    "• Ссылка работает только в VPN-клиенте\n\n"
     "👇 Нажми <b>Оплатить</b> для получения ссылки на оплату."
 )
 
@@ -281,7 +284,7 @@ def create_platega_payment(telegram_user_id: int) -> tuple[str | None, str | Non
                     "amount":   PREMIUM_PRICE_RUB,
                     "currency": "RUB",
                 },
-                "description": f"Премиум подписка FreeCFGHub | TG:{telegram_user_id}",
+                "description": f"Премиум подписка FreeCFGHub (1 месяц) | TG:{telegram_user_id}",
                 "return":      f"{PUBLIC_SERVER_URL}/payment/success",
                 "failedUrl":   f"{PUBLIC_SERVER_URL}/payment/failed",
                 "payload":     str(telegram_user_id),
@@ -550,6 +553,12 @@ def proxy_premium_subscription(subscription_token: str):
     if subscription_token not in active_premium_tokens:
         abort(404)
 
+    # Проверяем срок действия
+    token_data = active_premium_tokens.get(subscription_token)
+    if token_data and token_data.get("expires_at", 0) < datetime.now().timestamp():
+        # Токен просрочен
+        abort(403)
+
     try:
         upstream_response = requests.get(PREMIUM_REAL_CONTENT_URL, timeout=15)
         return Response(
@@ -608,21 +617,26 @@ def payment_failed_page():
 
 def _deliver_premium_to_user(telegram_user_id: int):
     unique_token = str(uuid.uuid4()).replace("-", "")
-    active_premium_tokens[unique_token] = telegram_user_id
+    expires_at = datetime.now() + timedelta(days=30)
+    active_premium_tokens[unique_token] = {
+        "user_id": telegram_user_id,
+        "expires_at": expires_at.timestamp()
+    }
 
     personal_subscription_link = f"{PUBLIC_SERVER_URL}/sub/{unique_token}"
 
+    # Отправляем пользователю
     telegram_send_message(
         telegram_user_id,
         "🎉 <b>Оплата подтверждена!</b>\n\n"
-        "💎 Твоя персональная ссылка на подписку:\n\n"
+        "💎 Твоя персональная ссылка на подписку (действует 1 месяц):\n\n"
         f"<code>{personal_subscription_link}</code>\n\n"
         "📋 Скопируй её и вставь в поле <b>«Подписка»</b> в своём клиенте.\n\n"
         "⚠️ Ссылка работает <b>только в VPN-клиенте</b>. При открытии в браузере — страница недоступна.\n\n"
         f"📢 {PROJECT_CHANNEL_URL}",
         reply_markup=keyboard_back_to_main()
     )
-    print(f"💎 Премиум выдан: user={telegram_user_id} token={unique_token}", flush=True)
+    print(f"💎 Премиум выдан: user={telegram_user_id} token={unique_token} expires={expires_at}", flush=True)
 
 
 def run_flask_server():
