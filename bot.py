@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+  #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -25,7 +25,6 @@ TARIFFS = [
 PRIVACY_URL = "https://telegra.ph/Politika-konfidencialnosti-FreeCFGHub-06-03"
 TERMS_URL = "https://telegra.ph/Polzovatelskoe-soglashenie-FreeCFGHub-06-03"
 
-SUPPORT_URL = "https://t.me/FreeCFGHub"
 CHANNEL_URL = "https://t.me/FreeCFGHub"
 
 # Ссылки на подписки и ключи
@@ -87,7 +86,7 @@ def set_bot_commands():
     commands = [
         {"command": "start", "description": "🏠 Главное меню"},
         {"command": "sub", "description": "📁 Получить подписку"},
-        {"command": "keys", "description": "🔑 Получить ключи"},
+        {"command": "keys", "description": "🔑 Получить конфигурации"},
         {"command": "premium", "description": "💎 Премиум подписка"},
         {"command": "status", "description": "📡 Статус"},
         {"command": "info", "description": "ℹ️ Информация"},
@@ -125,7 +124,7 @@ TEXT_KEYS_MENU = (
 
 TEXT_PREMIUM_MENU = (
     "💎 <b>Премиум подписка</b>\n\n"
-    "Выберите тариф:\n"
+    "Выберите тариф:"
 )
 
 TEXT_INFO = (
@@ -254,7 +253,7 @@ def kb_keys():
 def kb_tariffs():
     buttons = []
     for name, price in TARIFFS:
-        buttons.append([{"text": f"💎 {name} — {price} ₽", "callback_data": f"tariff_{price}"}])
+        buttons.append([{"text": f"💎 {name} — {price} ₽", "callback_data": f"tariff_{name}_{price}"}])
     buttons.append([{"text": "◀️ Назад", "callback_data": "back_premium"}])
     return {"inline_keyboard": buttons}
 
@@ -337,9 +336,13 @@ def handle_callback(cb):
     elif data == "menu_premium":
         edit_message(chat_id, message_id, TEXT_PREMIUM_MENU, reply_markup=kb_tariffs())
     elif data.startswith("tariff_"):
-        price = data.split("_")[1]
+        parts = data.split("_")
+        name = parts[1]
+        price = parts[2]
         edit_message(chat_id, message_id,
-            f"💎 <b>Премиум подписка</b>\n\nСумма: {price} ₽\n\n"
+            f"💎 <b>Премиум подписка</b>\n\n"
+            f"Тариф: {name}\n"
+            f"Сумма: {price} ₽\n\n"
             "Для покупки напишите в поддержку: @ilyacom4ik\n\n"
             "После оплаты вы получите персональную ссылку",
             reply_markup=kb_back_to_premium())
