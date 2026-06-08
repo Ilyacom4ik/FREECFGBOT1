@@ -3,7 +3,6 @@
 
 import os
 import re
-import random
 import requests
 
 # ═══════════════════════════════════════════════════════
@@ -25,14 +24,6 @@ TARIFFS = {
 PRIVACY_URL = "https://telegra.ph/Politika-konfidencialnosti-FreeCFGHub-06-03"
 TERMS_URL = "https://telegra.ph/Polzovatelskoe-soglashenie-FreeCFGHub-06-03"
 CHANNEL_URL = "https://t.me/FreeCFGHub"
-
-# Подписки и ключи
-SMALL_SUB_URL = "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt"
-BIG_SUB_URL = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
-KEYS_SOURCE_URL = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
-
-LITE_KEYS_COUNT = 5
-FULL_KEYS_COUNT = 7
 
 # ═══════════════════════════════════════════════════════
 #                     ФУНКЦИИ
@@ -84,10 +75,7 @@ def answer_callback(callback_id, text=""):
 def set_bot_commands():
     commands = [
         {"command": "start", "description": "🏠 Главное меню"},
-        {"command": "sub", "description": "📁 Получить подписку"},
-        {"command": "keys", "description": "🔑 Получить ключи"},
         {"command": "premium", "description": "💎 Премиум подписка"},
-        {"command": "status", "description": "📡 Статус"},
         {"command": "info", "description": "ℹ️ Информация"},
         {"command": "help", "description": "📜 Справка"},
     ]
@@ -101,25 +89,12 @@ def set_bot_commands():
 def text_welcome(name):
     return (
         f"Привет, {name} 👋\n\n"
-        "🆓 Здесь ты получишь конфигурации для разных клиентов.\n\n"
-        "📁 <b>Как получить?</b>\n"
-        "1️⃣ Выбираешь подписку либо ключи\n"
-        "2️⃣ Получаешь то или другое\n"
-        "3️⃣ Копируешь выданное\n"
-        "4️⃣ Вставляешь в любой клиент\n"
-        "5️⃣ Пользуешься ✅"
+        "💎 <b>Премиум подписка</b> — стабильные конфигурации с приоритетной поддержкой.\n\n"
+        "📁 Команды:\n"
+        "/premium — выбор тарифа\n"
+        "/info — документы и контакты\n"
+        "/help — пользовательское соглашение"
     )
-
-TEXT_SUB_MENU = (
-    "🔶 <b>Выберите тип подписки</b>\n\n"
-    "❗️ Внимание: большая подписка может вызвать лаги на слабых устройствах."
-)
-
-TEXT_KEYS_MENU = (
-    "🔷 <b>Выберите тип ключа</b>\n\n"
-    "• <b>Lite</b>\n"
-    "• <b>Full</b>\n\n"
-)
 
 TEXT_PREMIUM_MENU = (
     "💎 <b>Премиум подписка</b>\n\n"
@@ -173,50 +148,6 @@ TEXT_HELP = (
     f"📢 Канал: {CHANNEL_URL}"
 )
 
-TEXT_STATUS_LOADING = "⏳ Проверяю..."
-
-# ═══════════════════════════════════════════════════════
-#                 ЗАГРУЗКА КЛЮЧЕЙ
-# ═══════════════════════════════════════════════════════
-
-def fetch_and_parse_keys():
-    try:
-        r = requests.get(KEYS_SOURCE_URL, timeout=15)
-        if r.status_code != 200:
-            return None, f"Ошибка загрузки: {r.status_code}"
-        lite_keys = []
-        full_keys = []
-        for line in r.text.splitlines():
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            if not re.match(r'^(vless|vmess|trojan|ss|tuic|hysteria2)://', line):
-                continue
-            if re.search(r'\bLite\b', line, re.IGNORECASE):
-                lite_keys.append(line)
-            else:
-                full_keys.append(line)
-        return {"lite": lite_keys, "full": full_keys}, None
-    except Exception as e:
-        return None, str(e)
-
-def get_random_keys(keys_list, count):
-    if not keys_list:
-        return []
-    return random.sample(keys_list, min(count, len(keys_list)))
-
-def get_status_text():
-    keys_data, error = fetch_and_parse_keys()
-    if error:
-        return f"❌ Ошибка: {error}"
-    return (
-        f"📊 <b>Статус подписки</b>\n\n"
-        f"Lite: {len(keys_data.get('lite', []))}\n"
-        f"Full: {len(keys_data.get('full', []))}\n\n"
-        f"🔄 Обновляется автоматически\n\n"
-        f"📢 {CHANNEL_URL}"
-    )
-
 # ═══════════════════════════════════════════════════════
 #                     КЛАВИАТУРЫ
 # ═══════════════════════════════════════════════════════
@@ -224,28 +155,9 @@ def get_status_text():
 def kb_main():
     return {
         "inline_keyboard": [
-            [{"text": "📁 Получить подписку", "callback_data": "menu_sub"}],
-            [{"text": "🔑 Получить ключи", "callback_data": "menu_keys"}],
             [{"text": "💎 Премиум подписка", "callback_data": "menu_premium"}],
             [{"text": "ℹ️ Информация", "callback_data": "menu_info"}],
             [{"text": "📜 Справка", "callback_data": "menu_help"}],
-        ]
-    }
-
-def kb_subscriptions():
-    return {
-        "inline_keyboard": [
-            [{"text": "📦 Небольшая подписка", "callback_data": "sub_small"}],
-            [{"text": "🗂 Большая подписка", "callback_data": "sub_big"}],
-            [{"text": "◀️ Назад", "callback_data": "back_main"}],
-        ]
-    }
-
-def kb_keys():
-    return {
-        "inline_keyboard": [
-            [{"text": "Lite", "callback_data": "keys_lite"}, {"text": "Full", "callback_data": "keys_full"}],
-            [{"text": "◀️ Назад", "callback_data": "back_main"}],
         ]
     }
 
@@ -253,7 +165,7 @@ def kb_tariffs():
     buttons = []
     for key, tariff in TARIFFS.items():
         buttons.append([{"text": f"💎 {tariff['name']} — {tariff['price']} ₽", "callback_data": f"tariff_{key}"}])
-    buttons.append([{"text": "◀️ Назад", "callback_data": "back_premium"}])
+    buttons.append([{"text": "◀️ Назад", "callback_data": "back_main"}])
     return {"inline_keyboard": buttons}
 
 def kb_back():
@@ -276,15 +188,8 @@ def handle_message(msg):
 
     if text == "/start":
         send_message(chat_id, text_welcome(name), reply_markup=kb_main())
-    elif text == "/sub":
-        send_message(chat_id, TEXT_SUB_MENU, reply_markup=kb_subscriptions())
-    elif text == "/keys":
-        send_message(chat_id, TEXT_KEYS_MENU, reply_markup=kb_keys())
     elif text == "/premium":
         send_message(chat_id, TEXT_PREMIUM_MENU, reply_markup=kb_tariffs())
-    elif text == "/status":
-        send_message(chat_id, TEXT_STATUS_LOADING)
-        send_message(chat_id, get_status_text())
     elif text == "/info":
         send_message(chat_id, TEXT_INFO, reply_markup=kb_back())
     elif text == "/help":
@@ -300,40 +205,12 @@ def handle_callback(cb):
 
     if data == "back_main":
         edit_message(chat_id, message_id, text_welcome(name), reply_markup=kb_main())
-    elif data == "back_premium":
-        edit_message(chat_id, message_id, TEXT_PREMIUM_MENU, reply_markup=kb_tariffs())
-    elif data == "menu_sub":
-        edit_message(chat_id, message_id, TEXT_SUB_MENU, reply_markup=kb_subscriptions())
-    elif data == "sub_small":
-        edit_message(chat_id, message_id,
-            f"📦 <b>Небольшая подписка</b>\n\n<code>{SMALL_SUB_URL}</code>",
-            reply_markup=kb_back())
-    elif data == "sub_big":
-        edit_message(chat_id, message_id,
-            f"🗂 <b>Большая подписка</b>\n\n<code>{BIG_SUB_URL}</code>",
-            reply_markup=kb_back())
-    elif data == "menu_keys":
-        edit_message(chat_id, message_id, TEXT_KEYS_MENU, reply_markup=kb_keys())
-    elif data in ("keys_lite", "keys_full"):
-        key_type = "lite" if data == "keys_lite" else "full"
-        count = LITE_KEYS_COUNT if key_type == "lite" else FULL_KEYS_COUNT
-        label = "Lite" if key_type == "lite" else "Full"
-        edit_message(chat_id, message_id, f"⏳ Загружаю...")
-        keys_data, error = fetch_and_parse_keys()
-        if error:
-            edit_message(chat_id, message_id, f"❌ {error}", reply_markup=kb_back())
-            return
-        keys = keys_data.get(key_type, [])
-        if not keys:
-            edit_message(chat_id, message_id, "😔 Ключи временно недоступны", reply_markup=kb_back())
-            return
-        selected = get_random_keys(keys, count)
-        keys_block = "\n\n".join(f"<code>{k}</code>" for k in selected)
-        edit_message(chat_id, message_id,
-            f"🔑 <b>{label} — {len(selected)} шт.</b>\n\n{keys_block}\n\n📢 {CHANNEL_URL}",
-            reply_markup=kb_back())
     elif data == "menu_premium":
         edit_message(chat_id, message_id, TEXT_PREMIUM_MENU, reply_markup=kb_tariffs())
+    elif data == "menu_info":
+        edit_message(chat_id, message_id, TEXT_INFO, reply_markup=kb_back())
+    elif data == "menu_help":
+        edit_message(chat_id, message_id, TEXT_HELP, reply_markup=kb_back())
     elif data.startswith("tariff_"):
         tariff_key = data.split("_", 1)[1]
         tariff = TARIFFS.get(tariff_key)
@@ -347,10 +224,8 @@ def handle_callback(cb):
                 reply_markup=kb_back_to_premium())
         else:
             edit_message(chat_id, message_id, "❌ Ошибка: тариф не найден", reply_markup=kb_back())
-    elif data == "menu_info":
-        edit_message(chat_id, message_id, TEXT_INFO, reply_markup=kb_back())
-    elif data == "menu_help":
-        edit_message(chat_id, message_id, TEXT_HELP, reply_markup=kb_back())
+    elif data == "back_premium":
+        edit_message(chat_id, message_id, TEXT_PREMIUM_MENU, reply_markup=kb_tariffs())
 
 # ═══════════════════════════════════════════════════════
 #                        MAIN
