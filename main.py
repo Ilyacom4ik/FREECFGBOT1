@@ -5,6 +5,8 @@ import os
 import re
 import random
 import requests
+from datetime import datetime
+import json
 
 # ═══════════════════════════════════════════════════════
 #                     НАСТРОЙКИ
@@ -13,13 +15,13 @@ import requests
 BOT_TOKEN = os.environ['TG_BOT_TOKEN']
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-# Тарифы (название, цена)
-TARIFFS = [
-    ("1 месяц", 120),
-    ("3 месяца", 320),
-    ("6 месяцев", 650),
-    ("1 год", 999),
-]
+# Тарифы (словарь с описанием преимуществ)
+TARIFFS = {
+    "1_month": {"name": "1 месяц", "price": 120, "days": 30, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день"},
+    "3_months": {"name": "3 месяца", "price": 320, "days": 90, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Экономия 40₽"},
+    "6_months": {"name": "6 месяцев", "price": 650, "days": 180, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Экономия 70₽"},
+    "1_year": {"name": "1 год", "price": 999, "days": 365, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Максимальная экономия (≈200₽)"},
+}
 
 # Ссылки на документы
 PRIVACY_URL = "https://telegra.ph/Politika-konfidencialnosti-FreeCFGHub-06-03"
@@ -86,7 +88,7 @@ def set_bot_commands():
     commands = [
         {"command": "start", "description": "🏠 Главное меню"},
         {"command": "sub", "description": "📁 Получить подписку"},
-        {"command": "keys", "description": "🔑 Получить конфигурации"},
+        {"command": "keys", "description": "🔑 Получить ключи"},
         {"command": "premium", "description": "💎 Премиум подписка"},
         {"command": "status", "description": "📡 Статус"},
         {"command": "info", "description": "ℹ️ Информация"},
@@ -117,14 +119,14 @@ TEXT_SUB_MENU = (
 )
 
 TEXT_KEYS_MENU = (
-    "🔷 <b>Выберите тип конфигурации</b>\n\n"
+    "🔷 <b>Выберите тип ключа</b>\n\n"
     "• <b>Lite</b>\n"
     "• <b>Full</b>\n\n"
 )
 
 TEXT_PREMIUM_MENU = (
     "💎 <b>Премиум подписка</b>\n\n"
-    "Выберите тариф:"
+    "Выберите срок:"
 )
 
 TEXT_INFO = (
@@ -212,8 +214,8 @@ def get_status_text():
         return f"❌ Ошибка: {error}"
     return (
         f"📊 <b>Статус подписки</b>\n\n"
-        f"Lite: {len(keys_data.get('lite', []))}\n"
-        f"Full: {len(keys_data.get('full', []))}\n\n"
+        f"🏳️ Lite ключей: {len(keys_data.get('lite', []))}\n"
+        f"🏴 Full ключей: {len(keys_data.get('full', []))}\n\n"
         f"🔄 Обновляется автоматически\n\n"
         f"📢 {CHANNEL_URL}"
     )
@@ -226,7 +228,7 @@ def kb_main():
     return {
         "inline_keyboard": [
             [{"text": "📁 Получить подписку", "callback_data": "menu_sub"}],
-            [{"text": "🔑 Получить конфигурации", "callback_data": "menu_keys"}],
+            [{"text": "🔑 Получить ключи", "callback_data": "menu_keys"}],
             [{"text": "💎 Премиум подписка", "callback_data": "menu_premium"}],
             [{"text": "ℹ️ Информация", "callback_data": "menu_info"}],
             [{"text": "📜 Справка", "callback_data": "menu_help"}],
@@ -236,8 +238,8 @@ def kb_main():
 def kb_subscriptions():
     return {
         "inline_keyboard": [
-            [{"text": "📦 Небольшая подписка", "callback_data": "sub_small"}],
-            [{"text": "🗂 Большая подписка", "callback_data": "sub_big"}],
+            [{"text": "📦 Небольшая подписка (для слабых устройств)", "callback_data": "sub_small"}],
+            [{"text": "🗂 Большая подписка (много ключей)", "callback_data": "sub_big"}],
             [{"text": "◀️ Назад", "callback_data": "back_main"}],
         ]
     }
@@ -251,9 +253,10 @@ def kb_keys():
     }
 
 def kb_tariffs():
+    """Клавиатура выбора тарифа с кнопками, где указана цена"""
     buttons = []
-    for name, price in TARIFFS:
-        buttons.append([{"text": f"💎 {name} — {price} ₽", "callback_data": f"tariff_{name}_{price}"}])
+    for key, tariff in TARIFFS.items():
+        buttons.append([{"text": f"💎 {tariff['name']} — {tariff['price']} ₽", "callback_data": f"tariff_{key}"}])
     buttons.append([{"text": "◀️ Назад", "callback_data": "back_premium"}])
     return {"inline_keyboard": buttons}
 
@@ -307,11 +310,11 @@ def handle_callback(cb):
         edit_message(chat_id, message_id, TEXT_SUB_MENU, reply_markup=kb_subscriptions())
     elif data == "sub_small":
         edit_message(chat_id, message_id,
-            f"📦 <b>Небольшая подписка</b>\n\n<code>{SMALL_SUB_URL}</code>",
+            f"📦 <b>Небольшая подписка</b>\n\nСкопируй ссылку и вставь в клиент:\n\n<code>{SMALL_SUB_URL}</code>",
             reply_markup=kb_back())
     elif data == "sub_big":
         edit_message(chat_id, message_id,
-            f"🗂 <b>Большая подписка</b>\n\n<code>{BIG_SUB_URL}</code>",
+            f"🗂 <b>Большая подписка</b>\n\nСкопируй ссылку и вставь в клиент:\n\n<code>{BIG_SUB_URL}</code>",
             reply_markup=kb_back())
     elif data == "menu_keys":
         edit_message(chat_id, message_id, TEXT_KEYS_MENU, reply_markup=kb_keys())
@@ -336,16 +339,19 @@ def handle_callback(cb):
     elif data == "menu_premium":
         edit_message(chat_id, message_id, TEXT_PREMIUM_MENU, reply_markup=kb_tariffs())
     elif data.startswith("tariff_"):
-        parts = data.split("_")
-        name = parts[1]
-        price = parts[2]
-        edit_message(chat_id, message_id,
-            f"💎 <b>Премиум подписка</b>\n\n"
-            f"Тариф: {name}\n"
-            f"Сумма: {price} ₽\n\n"
-            "Для покупки напишите в поддержку: @ilyacom4ik\n\n"
-            "После оплаты вы получите персональную ссылку",
-            reply_markup=kb_back_to_premium())
+        tariff_key = data.split("_")[1]
+        tariff = TARIFFS.get(tariff_key)
+        if tariff:
+            edit_message(chat_id, message_id,
+                f"💎 <b>Премиум подписка: {tariff['name']}</b>\n\n"
+                f"💰 Стоимость: {tariff['price']} ₽\n\n"
+                f"📋 <b>Что входит в премиум:</b>\n"
+                f"{tariff['description']}\n\n"
+                "📞 Для покупки напишите в поддержку: @ilyacom4ik\n\n"
+                "После оплаты вы получите персональную ссылку на подписку",
+                reply_markup=kb_back_to_premium())
+        else:
+            edit_message(chat_id, message_id, "❌ Ошибка: тариф не найден", reply_markup=kb_back())
     elif data == "menu_info":
         edit_message(chat_id, message_id, TEXT_INFO, reply_markup=kb_back())
     elif data == "menu_help":
