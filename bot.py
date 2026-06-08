@@ -5,8 +5,6 @@ import os
 import re
 import random
 import requests
-from datetime import datetime
-import json
 
 # ═══════════════════════════════════════════════════════
 #                     НАСТРОЙКИ
@@ -214,8 +212,8 @@ def get_status_text():
         return f"❌ Ошибка: {error}"
     return (
         f"📊 <b>Статус подписки</b>\n\n"
-        f"🏳️ Lite ключей: {len(keys_data.get('lite', []))}\n"
-        f"🏴 Full ключей: {len(keys_data.get('full', []))}\n\n"
+        f"Lite: {len(keys_data.get('lite', []))}\n"
+        f"Full: {len(keys_data.get('full', []))}\n\n"
         f"🔄 Обновляется автоматически\n\n"
         f"📢 {CHANNEL_URL}"
     )
@@ -253,7 +251,6 @@ def kb_keys():
     }
 
 def kb_tariffs():
-    """Клавиатура выбора тарифа с кнопками, где указана цена"""
     buttons = []
     for key, tariff in TARIFFS.items():
         buttons.append([{"text": f"💎 {tariff['name']} — {tariff['price']} ₽", "callback_data": f"tariff_{key}"}])
@@ -339,7 +336,7 @@ def handle_callback(cb):
     elif data == "menu_premium":
         edit_message(chat_id, message_id, TEXT_PREMIUM_MENU, reply_markup=kb_tariffs())
     elif data.startswith("tariff_"):
-        tariff_key = data.split("_")[1]
+        tariff_key = data.split("_", 1)[1]
         tariff = TARIFFS.get(tariff_key)
         if tariff:
             edit_message(chat_id, message_id,
