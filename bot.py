@@ -13,21 +13,20 @@ import requests
 BOT_TOKEN = os.environ['TG_BOT_TOKEN']
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-# Тарифы (словарь с описанием преимуществ)
+# Тарифы
 TARIFFS = {
-    "1_month": {"name": "1 месяц", "price": 120, "days": 30, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день"},
-    "3_months": {"name": "3 месяца", "price": 320, "days": 90, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Экономия 40₽"},
-    "6_months": {"name": "6 месяцев", "price": 650, "days": 180, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Экономия 70₽"},
-    "1_year": {"name": "1 год", "price": 999, "days": 365, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Максимальная экономия (≈200₽)"},
+    "1_month": {"name": "1 месяц", "price": 120, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день"},
+    "3_months": {"name": "3 месяца", "price": 320, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Экономия 40₽"},
+    "6_months": {"name": "6 месяцев", "price": 650, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Экономия 70₽"},
+    "1_year": {"name": "1 год", "price": 999, "description": "✅ Доступ к премиум‑серверам\n✅ Высокая стабильность\n✅ Приоритетная поддержка\n✅ Обновления 2 раза в день\n✅ Максимальная экономия"},
 }
 
 # Ссылки на документы
 PRIVACY_URL = "https://telegra.ph/Politika-konfidencialnosti-FreeCFGHub-06-03"
 TERMS_URL = "https://telegra.ph/Polzovatelskoe-soglashenie-FreeCFGHub-06-03"
-
 CHANNEL_URL = "https://t.me/FreeCFGHub"
 
-# Ссылки на подписки и ключи
+# Подписки и ключи
 SMALL_SUB_URL = "https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/subscriptions/FreeCFGHub1.txt"
 BIG_SUB_URL = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
 KEYS_SOURCE_URL = "https://raw.githubusercontent.com/Ilyacom4ik/vpn-keys/refs/heads/main/allkeysFreeCFGHub.txt"
@@ -236,8 +235,8 @@ def kb_main():
 def kb_subscriptions():
     return {
         "inline_keyboard": [
-            [{"text": "📦 Небольшая подписка (для слабых устройств)", "callback_data": "sub_small"}],
-            [{"text": "🗂 Большая подписка (много ключей)", "callback_data": "sub_big"}],
+            [{"text": "📦 Небольшая подписка", "callback_data": "sub_small"}],
+            [{"text": "🗂 Большая подписка", "callback_data": "sub_big"}],
             [{"text": "◀️ Назад", "callback_data": "back_main"}],
         ]
     }
@@ -307,11 +306,11 @@ def handle_callback(cb):
         edit_message(chat_id, message_id, TEXT_SUB_MENU, reply_markup=kb_subscriptions())
     elif data == "sub_small":
         edit_message(chat_id, message_id,
-            f"📦 <b>Небольшая подписка</b>\n\nСкопируй ссылку и вставь в клиент:\n\n<code>{SMALL_SUB_URL}</code>",
+            f"📦 <b>Небольшая подписка</b>\n\n<code>{SMALL_SUB_URL}</code>",
             reply_markup=kb_back())
     elif data == "sub_big":
         edit_message(chat_id, message_id,
-            f"🗂 <b>Большая подписка</b>\n\nСкопируй ссылку и вставь в клиент:\n\n<code>{BIG_SUB_URL}</code>",
+            f"🗂 <b>Большая подписка</b>\n\n<code>{BIG_SUB_URL}</code>",
             reply_markup=kb_back())
     elif data == "menu_keys":
         edit_message(chat_id, message_id, TEXT_KEYS_MENU, reply_markup=kb_keys())
@@ -342,10 +341,9 @@ def handle_callback(cb):
             edit_message(chat_id, message_id,
                 f"💎 <b>Премиум подписка: {tariff['name']}</b>\n\n"
                 f"💰 Стоимость: {tariff['price']} ₽\n\n"
-                f"📋 <b>Что входит в премиум:</b>\n"
-                f"{tariff['description']}\n\n"
-                "📞 Для покупки напишите в поддержку: @ilyacom4ik\n\n"
-                "После оплаты вы получите персональную ссылку на подписку",
+                f"📋 <b>Что входит:</b>\n{tariff['description']}\n\n"
+                "📞 Для покупки: @ilyacom4ik\n\n"
+                "После оплаты вы получите персональную ссылку",
                 reply_markup=kb_back_to_premium())
         else:
             edit_message(chat_id, message_id, "❌ Ошибка: тариф не найден", reply_markup=kb_back())
